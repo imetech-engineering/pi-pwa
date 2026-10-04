@@ -1,0 +1,73 @@
+/* Aanvullingen voor IMeTech Pi bovenop de gedeelde IMeTech-stijl (css/style.css). Alles met prefix pi-. */
+.pi-num { font-variant-numeric: tabular-nums; }
+
+/* Statuskaart */
+.pi-status { display: flex; gap: 12px; align-items: center; }
+.pi-status-stip { width: 14px; height: 14px; border-radius: 50%; flex: none; background: var(--text-tertiary); }
+.pi-status-stip.goed { background: var(--goed); box-shadow: 0 0 0 4px var(--goed-light); }
+.pi-status-stip.let-op { background: var(--let-op); box-shadow: 0 0 0 4px var(--let-op-light); }
+.pi-status-stip.probleem { background: var(--danger); box-shadow: 0 0 0 4px var(--danger-light); }
+.pi-status b { font-size: 1.0625rem; }
+.pi-problemen { list-style: none; margin: 10px 0 0; padding: 0; }
+.pi-problemen li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-top: 1px solid var(--border); font-size: 0.875rem; }
+.pi-problemen li .tag { margin-top: 1px; }
+.pi-problemen small { display: block; color: var(--text-secondary); }
+
+/* Tegels */
+.pi-tegels { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+@media (max-width: 380px) { .pi-tegels { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.pi-tegel { display: block; text-align: left; min-height: 0; padding: 10px 12px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); color: var(--text-primary); font-weight: 400; min-width: 0; }
+.pi-tegel[aria-pressed="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.pi-tegel .lbl { display: block; font-size: 0.6875rem; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary); font-weight: 600; }
+.pi-tegel .val { display: block; font-size: 1.375rem; font-weight: 600; font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; }
+.pi-tegel .val small { font-size: 0.75rem; font-weight: 500; color: var(--text-secondary); margin-left: 2px; }
+.pi-tegel .sub2 { display: block; font-size: 0.6875rem; color: var(--text-secondary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 4px; }
+.pi-tegel .meter { margin: 6px 0 0; height: 5px; }
+
+/* Grafiek */
+.pi-seg { display: inline-flex; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 2px; gap: 2px; }
+.pi-seg button { min-height: 30px; min-width: 0; padding: 4px 10px; font-size: 0.8125rem; font-weight: 500; background: transparent; color: var(--text-secondary); border-radius: 6px; }
+.pi-seg button[aria-pressed="true"] { background: var(--accent-light); color: var(--accent); font-weight: 600; }
+.pi-chart { position: relative; height: 190px; margin-top: 8px; touch-action: pan-y; }
+.pi-chart.klein { height: 140px; }
+.pi-chart svg { display: block; width: 100%; height: 100%; }
+.pi-chart .tip { position: absolute; top: 2px; pointer-events: none; background: var(--bg-primary); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 4px 8px; font-size: 0.75rem; white-space: nowrap; transform: translateX(-50%); box-shadow: 0 4px 14px rgba(0,0,0,.12); font-variant-numeric: tabular-nums; }
+.pi-chart .leeg2 { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--text-secondary); font-size: 0.875rem; padding: 16px; }
+.pi-legenda { display: flex; gap: 14px; font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; }
+.pi-legenda i { display: inline-block; width: 12px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: middle; }
+
+/* Dienstenlijst */
+.pi-lijst { background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; margin-bottom: 12px; }
+.pi-rij { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 14px; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; text-align: left; font-weight: 400; color: var(--text-primary); }
+.pi-rij:first-child { border-top: 0; }
+.pi-rij:active { background: var(--bg-hover); }
+.pi-rij .stip-s { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--goed); }
+.pi-rij .stip-s.let-op { background: var(--let-op); } .pi-rij .stip-s.probleem { background: var(--danger); } .pi-rij .stip-s.grijs { background: var(--text-tertiary); }
+.pi-rij .naam { flex: 1; min-width: 0; }
+.pi-rij .naam b { display: block; font-weight: 600; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pi-rij .naam span { display: block; font-size: 0.75rem; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pi-rij .getal { font-size: 0.8125rem; font-variant-numeric: tabular-nums; text-align: right; min-width: 56px; color: var(--text-primary); }
+.pi-rij .getal small { color: var(--text-tertiary); }
+.pi-rij .ic { width: 16px; height: 16px; color: var(--text-tertiary); flex: none; }
+.pi-meer { display: block; width: 100%; min-height: 44px; background: transparent; border: 0; border-top: 1px solid var(--border); border-radius: 0; color: var(--accent); font-weight: 500; font-size: 0.875rem; }
+
+/* Detail en knoppen */
+.pi-terug { min-height: 36px; padding: 4px 10px 4px 4px; background: transparent; color: var(--accent); font-weight: 500; margin: 0 0 6px -4px; }
+.pi-terug .ic { width: 18px; height: 18px; }
+.pi-knoppen { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.pi-knoppen button { min-height: 40px; padding: 8px 14px; font-size: 0.875rem; }
+button.pi-let-op { background: var(--let-op-light); color: var(--let-op); }
+button.pi-gevaar { background: var(--danger-light); color: var(--danger); }
+button.pi-zeker { background: var(--danger); color: #fff; }
+.pi-noot { font-size: 0.8125rem; color: var(--let-op); margin: 8px 0 0; }
+.pi-log { font-family: ui-monospace, Consolas, "Cascadia Mono", monospace; font-size: 0.6875rem; line-height: 1.45; background: var(--bg-primary); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px; max-height: 55vh; overflow: auto; white-space: pre-wrap; word-break: break-word; margin: 0 0 12px; }
+
+/* Onderhoud */
+.pi-kv { display: flex; justify-content: space-between; gap: 12px; padding: 7px 0; border-top: 1px solid var(--border); font-size: 0.875rem; }
+.pi-kv:first-of-type { border-top: 0; }
+.pi-kv span:last-child { color: var(--text-secondary); text-align: right; font-variant-numeric: tabular-nums; }
+.pi-pakketten { font-size: 0.75rem; color: var(--text-secondary); margin: 6px 0 0; overflow-wrap: anywhere; }
+.pi-bezig { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8125rem; color: var(--accent); }
+.pi-bezig::before { content: ""; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: draai .8s linear infinite; }
+.pi-voet { font-size: 0.75rem; color: var(--text-tertiary); text-align: center; margin: 14px 0 4px; }
+@media (prefers-reduced-motion: reduce) { .pi-bezig::before { animation: none; } }
