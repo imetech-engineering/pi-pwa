@@ -71,3 +71,7 @@ button.pi-zeker { background: var(--danger); color: #fff; }
 .pi-bezig::before { content: ""; width: 12px; height: 12px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: draai .8s linear infinite; }
 .pi-voet { font-size: 0.75rem; color: var(--text-tertiary); text-align: center; margin: 14px 0 4px; }
 @media (prefers-reduced-motion: reduce) { .pi-bezig::before { animation: none; } }
+
+/* 1.1 */
+.stip-i { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: var(--goed); vertical-align: 1px; }
+.stip-i.probleem { background: var(--danger); }

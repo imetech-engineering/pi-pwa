@@ -1,14 +1,14 @@
 /* IMeTech Pi: status, historie, diensten en onderhoud van de RPi5. */
 (function () {
   "use strict";
-  const VERSIE = "1.0.1";
+  const VERSIE = "1.1.0";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
   const fmt = (v, d = 0) => (v == null || isNaN(v) ? "-" : Number(v).toLocaleString("nl-NL", { maximumFractionDigits: d, minimumFractionDigits: d }));
   const fmtMB = (mb) => (mb == null ? "-" : mb >= 1024 ? fmt(mb / 1024, 1) + " GB" : fmt(mb) + " MB");
   const fmtUp = (s) => { const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600); return d ? `${d}d ${h}u` : `${h}u ${Math.floor((s % 3600) / 60)}m`; };
-  const tKort = (ts, r) => { const d = new Date(ts * 1000); return r === "7d" || r === "30d" ? d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) : d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }); };
+  const tKort = (ts, r) => { const d = new Date(ts * 1000); return r === "1y" ? d.toLocaleDateString("nl-NL", { month: "short", year: "2-digit" }) : r === "7d" || r === "30d" ? d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" }) : d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" }); };
   const tLang = (ts) => new Date(ts * 1000).toLocaleString("nl-NL", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   const BESCHERMD = { "n8n": "Hier draaien je n8n-workflows op.", "imetech-assistant": "Dit is je IMeTech-assistent.", "n8n-docx-append-1": "Hulpdienst van n8n.", "inboedel": "Jullie inboedel-lijst." };
   const STAAT = { running: "draait", online: "draait", paused: "gepauzeerd", exited: "gestopt", stopped: "gestopt", created: "aangemaakt", restarting: "herstart", errored: "fout", dead: "dood" };
@@ -21,6 +21,7 @@
     net: { t: "Netwerk", u: "KB/s", kol: [["rx", "Binnen"], ["tx", "Uit"]], schaal: 1 / 1024 },
   };
 
+  const BEREIK = [["1h", "1u"], ["24h", "24u"], ["7d", "7d"], ["30d", "30d"], ["1y", "1j"]];
   const S = { tab: "overzicht", ov: null, range: "24h", metriek: "cpu", hist: null, spark: null, ond: null, acties: null, detail: null, dRange: "24h", alleUnits: false, fout: null, gewapend: {} };
 
   /* ---------------- algemeen ---------------- */
@@ -117,7 +118,7 @@
     const t = [
       ["cpu", "CPU", fmt(l.cpu), "%", `load ${fmt(l.load1, 2)}`, l.cpu, kleurM(l.cpu, 75, 90)],
       ["mem", "Geheugen", fmt(l.mem), "%", `van ${fmt(S.ov.mem_total_mb / 1024)} GB`, l.mem, kleurM(l.mem, 85, 92)],
-      ["temp", "Temperatuur", fmt(l.temp), "°C", spanning(l.throttled), l.temp == null ? null : (l.temp / 90) * 100, kleurM(l.temp, 72, 80)],
+      ["temp", "Temperatuur", fmt(l.temp), "°C", spanning(l.throttled) + (S.ov.onderspanning_30d ? ` · ${S.ov.onderspanning_30d} min onderspanning (30d)` : ""), l.temp == null ? null : (l.temp / 90) * 100, kleurM(l.temp, 72, 80)],
       ["disk", "Schijf", fmt(l.disk), "%", "systeemkaart", l.disk, kleurM(l.disk, 80, 90)],
       ["load", "Load", fmt(l.load1, 2), "", `${n} kernen`, l.load1 == null ? null : (l.load1 / n) * 100, kleurM(l.load1, n * 0.8, n * 1.5)],
       ["net", "Netwerk", fmt((l.rx || 0) / 1024), "KB/s", `uit ${fmt((l.tx || 0) / 1024)} KB/s`, null, ""],
@@ -144,7 +145,7 @@
     const m = METRIEK[S.metriek];
     const top = [...S.ov.services].filter((s) => s.mem != null).sort((a, b) => b.cpu + b.mem / 200 - (a.cpu + a.mem / 200)).slice(0, 5);
     return statusKaart() + tegels() + `
-      <div class="card"><div class="kop"><b>${m.t}</b><div class="pi-seg" data-seg="range">${["1h", "24h", "7d", "30d"].map((r) => `<button type="button" data-range="${r}" aria-pressed="${S.range === r}">${r.replace("h", "u")}</button>`).join("")}</div></div>
+      <div class="card"><div class="kop"><b>${m.t}</b><div class="pi-seg" data-seg="range">${BEREIK.map(([r, t]) => `<button type="button" data-range="${r}" aria-pressed="${S.range === r}">${t}</button>`).join("")}</div></div>
       <div class="pi-chart" id="hoofd"></div><div class="pi-legenda" id="legenda"></div></div>
       <h2>Grootste verbruikers</h2><div class="pi-lijst">${top.map(dienstRij).join("") || `<p class="stil" style="padding:12px 14px;margin:0">Nog geen data</p>`}</div>`;
   }
@@ -159,10 +160,10 @@
   /* ---------------- diensten ---------------- */
   function renderDiensten() {
     const g = (k) => S.ov.services.filter((s) => s.kind === k);
-    let units = g("unit"); const nU = units.length; if (!S.alleUnits) units = units.slice(0, 10);
+    let units = g("unit"); const nU = units.length; if (!S.alleUnits) units = units.filter((u) => (u.mem || 0) >= 15 || (u.cpu || 0) >= 0.2).slice(0, 12);
     return `<h2>Docker</h2><div class="pi-lijst">${g("docker").map(dienstRij).join("") || '<p class="stil" style="padding:12px 14px;margin:0">Geen containers</p>'}</div>
       <h2>PM2</h2><div class="pi-lijst">${g("pm2").map(dienstRij).join("") || '<p class="stil" style="padding:12px 14px;margin:0">Geen PM2-processen</p>'}</div>
-      <h2>Systeem</h2><div class="pi-lijst">${units.map(dienstRij).join("")}${nU > 10 ? `<button type="button" class="pi-meer" data-actie="alle-units">${S.alleUnits ? "Minder tonen" : `Alle ${nU} tonen`}</button>` : ""}</div>
+      <h2>Systeem</h2><div class="pi-lijst">${units.map(dienstRij).join("")}${nU > units.length || S.alleUnits ? `<button type="button" class="pi-meer" data-actie="alle-units">${S.alleUnits ? "Alleen de grotere tonen" : `Alle ${nU} systeemdiensten tonen`}</button>` : ""}</div>
       <p class="hint">CPU in % van de hele Pi (${S.ov.ncpu} kernen), geheugen als werkelijk RAM-gebruik.</p>`;
   }
   function knoppenVoor(s) {
@@ -180,7 +181,7 @@
       <div class="pi-kv" style="margin-top:8px"><span>CPU nu</span><span>${s.cpu == null ? "-" : fmt(s.cpu, 1) + "%"}</span></div><div class="pi-kv"><span>Geheugen nu</span><span>${fmtMB(s.mem)}</span></div>
       ${BESCHERMD[s.name] ? `<p class="pi-noot">Let op: ${esc(BESCHERMD[s.name])} Stoppen of herstarten heeft direct effect.</p>` : ""}
       <div class="pi-knoppen">${knoppenVoor(s).map(([a, t, c]) => `<button type="button" class="${c}" data-dienstactie="${a}" data-label="${esc(t)}">${t}</button>`).join("")}<button type="button" class="btn-secondary" data-actie="logs">Logs</button></div></div>
-      <div class="card"><div class="kop"><b>CPU</b><div class="pi-seg">${["1h", "24h", "7d", "30d"].map((r) => `<button type="button" data-drange="${r}" aria-pressed="${S.dRange === r}">${r.replace("h", "u")}</button>`).join("")}</div></div><div class="pi-chart klein" id="d-cpu"></div></div>
+      <div class="card"><div class="kop"><b>CPU</b><div class="pi-seg">${BEREIK.map(([r, t]) => `<button type="button" data-drange="${r}" aria-pressed="${S.dRange === r}">${t}</button>`).join("")}</div></div><div class="pi-chart klein" id="d-cpu"></div></div>
       <div class="card"><b>Geheugen</b><div class="pi-chart klein" id="d-mem"></div></div>
       <pre class="pi-log hidden" id="d-log"></pre>`;
   }
@@ -228,13 +229,37 @@
     const cache = dk["Build Cache"]?.vrij_te_maken, img = dk["Images"]?.vrij_te_maken;
     const certs = (o.certificaten || []).slice().sort((a, b) => (b.in_gebruik - a.in_gebruik) || ((a.dagen ?? 999) - (b.dagen ?? 999)));
     const laatsteAuto = o.auto?.opruimen;
-    return `
+    const b = o.backup || {};
+    const tijd = (ts) => (ts ? tLang(ts) : "nog nooit");
+    const backupKaart = `<div class="card${b.ingesteld && b.ok === false ? " fout" : ""}"><div class="kop"><b>Back-up</b>${!b.ingesteld ? '<span class="tag grijs">nog niet ingesteld</span>' : b.ok === false ? '<span class="tag rood">mislukt</span>' : '<span class="tag groen">ok</span>'}</div>
+        ${!b.ingesteld ? '<p class="sub">De nachtelijke back-up naar de Synology wordt ingericht zodra de NAS bereikbaar is.</p>' : `
+        <div class="pi-kv"><span>Laatst gelukt</span><span>${esc(tijd(b.laatst_gelukt))}</span></div>
+        <div class="pi-kv"><span>Doel</span><span>${esc(b.doel || "-")}</span></div>
+        <div class="pi-kv"><span>Grootte / duur</span><span>${esc(b.grootte || "-")} · ${b.duur_s != null ? fmt(b.duur_s / 60, 1) + " min" : "-"}</span></div>
+        <div class="pi-kv"><span>Bewaarde versies</span><span>${esc(b.versies ?? "-")}</span></div>
+        ${b.fout ? `<p class="pi-noot">${esc(b.fout)}</p>` : ""}
+        <div class="pi-knoppen">${knopTaak("backup", "Nu back-uppen", "btn-secondary")}</div>`}</div>`;
+    const du = o.docker_updates || [];
+    const dockerKaart = `<div class="card"><div class="kop"><b>Docker-images</b>${du.some((x) => x.update) ? `<span class="tag oranje">${du.filter((x) => x.update).length} update</span>` : '<span class="tag groen">actueel</span>'}</div>
+        ${du.map((x) => `<div class="pi-kv"><span>${esc(x.container)} <small class="stil">${esc(x.image)} · ${esc(x.gemaakt || "")}</small></span><span>${x.update ? '<span class="tag oranje">nieuwe versie</span>' : x.status === "actueel" ? '<span class="tag groen">actueel</span>' : '<span class="tag grijs">eigen image</span>'}</span></div>
+          ${x.update ? `<div class="pi-knoppen" style="margin:0 0 6px">${x.compose || x.container === "inboedel" ? knopTaak("docker_update:" + x.container, x.container + " bijwerken", "pi-let-op") : '<span class="stil">Bijwerken via Claude</span>'}</div>` : ""}`).join("") || '<p class="stil">Geen containers.</p>'}
+        <p class="hint">Bij bijwerken blijft de vorige versie bewaard (tag "vorige"), zodat terugzetten kan. Grote sprongen (zoals n8n) eerst even laten checken.</p></div>`;
+    const ws = o.websites || [];
+    const webKaart = `<div class="card"><div class="kop"><b>Websites</b>${ws.length ? (ws.every((w) => w.ok) ? '<span class="tag groen">alles bereikbaar</span>' : '<span class="tag rood">storing</span>') : '<span class="tag grijs">eerste check volgt</span>'}</div>
+        ${ws.map((w) => `<div class="pi-kv"><span><span class="stip-i ${w.ok ? "goed" : "probleem"}"></span>${esc(w.naam)}</span><span>${w.ok ? fmt(w.ms) + " ms" : "status " + esc(w.status || "geen")}${w.beschikbaar_7d != null ? ` · ${fmt(w.beschikbaar_7d, 1)}%` : ""}</span></div>`).join("")}
+        <p class="hint">Elke 5 minuten gecontroleerd. Percentage = bereikbaarheid laatste 7 dagen.</p></div>`;
+    const f2b = o.fail2ban || {};
+    const beveiligKaart = `<div class="card"><div class="kop"><b>Beveiliging</b></div>
+        <div class="pi-kv"><span>Automatische beveiligingsupdates</span><span>${o.auto_beveiliging ? "aan" : "uit"}</span></div>
+        ${Object.entries(f2b).map(([j, v]) => `<div class="pi-kv"><span>Geblokkeerd (${esc(j === "nginx-scanners" ? "scanners" : j)})</span><span>${v.nu} nu · ${v.totaal} totaal</span></div>`).join("") || '<div class="pi-kv"><span>Scanners blokkeren (fail2ban)</span><span>uit</span></div>'}</div>`;
+    return backupKaart + `
       ${o.herstart_nodig ? `<div class="card fout"><b>Herstart nodig</b><p class="sub">Na de laatste updates wil de Pi een keer opnieuw opstarten. Diensten zijn dan ongeveer een minuut weg.</p><div class="pi-knoppen">${knopTaak("herstart", "Pi herstarten", "pi-gevaar")}</div></div>` : ""}
       <div class="card"><div class="kop"><b>Updates</b><span class="tag ${u.aantal ? "oranje" : "groen"}">${u.aantal ? u.aantal + " beschikbaar" : "bijgewerkt"}</span></div>
         <div class="pi-kv"><span>Waarvan beveiliging</span><span>${u.beveiliging ?? 0}</span></div>
         <div class="pi-kv"><span>Automatische beveiligingsupdates</span><span>${o.auto_beveiliging ? "aan" : "uit"}</span></div>
         ${u.pakketten?.length ? `<p class="pi-pakketten">${esc(u.pakketten.join(", "))}</p>` : ""}
         <div class="pi-knoppen">${u.aantal ? knopTaak("updates", "Nu installeren") : ""}${o.auto_beveiliging ? "" : knopTaak("auto_beveiliging", "Automatisch aanzetten", "btn-secondary")}</div></div>
+      ${dockerKaart}${webKaart}${beveiligKaart}
       <div class="card"><div class="kop"><b>Opruimen</b><span class="tag grijs">elke nacht automatisch</span></div>
         <div class="pi-kv"><span>Docker build-cache vrij te maken</span><span>${esc(cache ?? "-")}</span></div>
         <div class="pi-kv"><span>Ongebruikte images</span><span>${esc(img ?? "-")}</span></div>
@@ -245,11 +270,11 @@
         ${certs.map((c) => `<div class="pi-kv"><span>${esc(c.domein)}${c.naam !== c.domein ? ` <small class="stil">(${esc(c.naam)})</small>` : ""}</span><span>${!c.in_gebruik ? '<span class="tag grijs">niet in gebruik</span>' : `<span class="tag ${c.dagen < 4 ? "rood" : c.dagen < 14 ? "oranje" : "groen"}">nog ${c.dagen} dagen</span>`}</span></div>`).join("") || '<p class="stil">Geen certificaten gevonden.</p>'}
         <div class="pi-knoppen">${knopTaak("certificaten", "Nu vernieuwen", "btn-secondary")}</div></div>
       ${o.herstart_nodig ? "" : `<div class="card"><b>Pi herstarten</b><p class="sub">Alleen nodig als iets vastloopt. Alle diensten zijn dan ongeveer een minuut weg.</p><div class="pi-knoppen">${knopTaak("herstart", "Pi herstarten", "pi-gevaar")}</div></div>`}
-      <h2>Logboek</h2><div class="pi-lijst">${(S.acties || []).slice(0, 25).map((e) => `<div class="pi-rij" style="cursor:default"><span class="stip-s ${e.ok ? "goed" : "probleem"}"></span><span class="naam"><b>${esc(e.target.replace(/^\w+:/, ""))} · ${esc(e.action)}</b><span>${esc(tLang(e.ts))}${e.output ? " · " + esc(e.output.split("\n").pop().slice(0, 120)) : ""}</span></span></div>`).join("") || '<p class="stil" style="padding:12px 14px;margin:0">Nog niets gebeurd.</p>'}</div>`;
+      <h2>Logboek</h2><div class="pi-lijst">${(S.acties || []).slice(0, 40).map((e) => `<div class="pi-rij" style="cursor:default"><span class="stip-s ${e.ok ? "goed" : "probleem"}"></span><span class="naam"><b>${e.bron === "claude" ? "" : esc(e.target.replace(/^[\w_]+:/, "")) + " · "}${esc(e.action)}${e.bron && e.bron !== "app" ? ` <span class="tag ${e.bron === "claude" ? "" : "grijs"}">${e.bron === "claude" ? "Claude" : "automatisch"}</span>` : ""}</b><span>${esc(tLang(e.ts))}${e.output ? " · " + esc((e.bron === "claude" ? e.output : e.output.split("\n").pop()).slice(0, 120)) : ""}</span></span></div>`).join("") || '<p class="stil" style="padding:12px 14px;margin:0">Nog niets gebeurd.</p>'}</div>`;
   }
   async function taak(btn) {
     const t = btn.dataset.taak;
-    if (t !== "auto_beveiliging" && !bevestigd(btn, "t:" + t)) return;
+    if (t !== "auto_beveiliging" && t !== "backup" && !bevestigd(btn, "t:" + t)) return;
     btn.disabled = true;
     try { await Api.taak(t); toast(`${btn.dataset.label}: gestart`); } catch (e) { toast(e.message, true); }
     laadOnderhoud();
@@ -343,6 +368,25 @@
     if (e.target.id !== "i-donker") return;
     const c = await Opslag.instellingen(); c.donker = e.target.checked; await Opslag.set("instellingen", c); thema(); render();
   });
+  /* trek om te vernieuwen (zelfde gevoel als de andere IMeTech-apps) */
+  (function () {
+    const m = $("scherm"), ptr = $("ptr"); if (!m || !ptr) return;
+    let y0 = null, dy = 0;
+    m.addEventListener("touchstart", (e) => { y0 = m.scrollTop <= 0 ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+    m.addEventListener("touchmove", (e) => {
+      if (y0 == null) return; dy = Math.max(0, e.touches[0].clientY - y0);
+      ptr.style.height = Math.min(dy / 2, 56) + "px"; ptr.classList.toggle("klaar", dy > 110);
+    }, { passive: true });
+    m.addEventListener("touchend", async () => {
+      if (y0 == null) return; y0 = null;
+      if (dy > 110) {
+        ptr.classList.remove("klaar"); ptr.classList.add("bezig"); ptr.style.height = "44px";
+        await Promise.all([laadOverzicht(true), S.tab === "onderhoud" ? laadOnderhoud() : null, S.tab === "overzicht" ? laadHist() : null, S.detail ? tekenDetail() : null]);
+        ptr.classList.remove("bezig");
+      }
+      ptr.style.height = "0px"; ptr.classList.remove("klaar");
+    });
+  })();
   let rz; window.addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (S.tab === "overzicht") tekenHoofd(); if (S.detail) tekenDetail(); }, 200); });
 
   /* ---------------- start ---------------- */
