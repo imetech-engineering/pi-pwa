@@ -1,5 +1,5 @@
 /* Service worker: offline de app-schil. API-calls gaan altijd direct naar de Pi. */
-const CACHE = "pi-v1";
+const CACHE = "pi-v2";
 const SCHIL = ["./", "index.html", "manifest.json", "css/style.css", "css/pi.css", "js/opslag.js", "js/api.js", "js/install.js", "js/app.js", "js/terug.js", "js/imetech-apps.js", "icons/icon-192.png", "icons/icon-512.png", "branding/logo-zwart.png", "branding/logo-wit.png"];
 
 self.addEventListener("install", (e) => {

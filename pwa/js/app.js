@@ -1,7 +1,7 @@
 /* IMeTech Pi: status, historie, diensten en onderhoud van de RPi5. */
 (function () {
   "use strict";
-  const VERSIE = "1.0.0";
+  const VERSIE = "1.0.1";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -270,7 +270,7 @@
       <div class="inst-kaart"><label class="inst-rij"><span class="inst-label">Donkere modus</span><input type="checkbox" id="i-donker" ${donker ? "checked" : ""}></label></div>
       <div class="inst-kop">App</div>
       <div class="inst-kaart"><button type="button" class="inst-rij inst-knop" id="btn-install-settings" style="width:100%;background:transparent;border-radius:0;font-weight:400"><span class="inst-label">Installeren op startscherm</span><span class="inst-chev"></span></button>
-        <p class="inst-noot hidden" id="install-manual">Kies in het browsermenu "Toevoegen aan startscherm" of "App installeren".</p></div>
+        <p class="inst-noot hidden" id="install-manual">Chrome bood de installatie niet automatisch aan. Tik rechtsboven op het menu (de drie puntjes) en kies "App installeren" of "Toevoegen aan startscherm".</p></div>
       <p class="pi-voet">IMeTech Pi ${VERSIE}${S.ov ? " · server " + esc(S.ov.versie || "") : ""}</p>`;
   }
 
@@ -310,6 +310,12 @@
     const di = e.target.closest("[data-dienst]"); if (di) { if (S.tab !== "diensten") { S.tab = "diensten"; document.querySelectorAll(".bottom-nav button").forEach((b) => b.classList.toggle("actief", b.dataset.tab === "diensten")); } return openDetail(di.dataset.dienst); }
     const da = e.target.closest("[data-dienstactie]"); if (da) return dienstActie(da);
     const ta = e.target.closest("[data-taak]"); if (ta) return taak(ta);
+    if (e.target.closest("#btn-install-settings")) {
+      if (window.Installatie?.isStandalone?.()) return toast("Je gebruikt de geïnstalleerde app al");
+      if (window.Installatie?.canPrompt?.()) { await Installatie.promptInstall(); return; }
+      $("install-manual")?.classList.remove("hidden");
+      return;
+    }
     const ac = e.target.closest("[data-actie]");
     if (ac) {
       const a = ac.dataset.actie;
@@ -354,7 +360,6 @@
     if (window.Terug?.sluiter) { Terug.sluiter("detail", () => { S.detail = null; render(); }); Terug.sluiter("tab", () => kiesTab("overzicht")); }
     if (window.IMeTechApps) IMeTechApps.houdParams = true;
     await koppelUitLink();
-    if (window.Installatie) Installatie.init(kiesTab);
     const c = await Opslag.instellingen();
     if (!c.token) { kiesTab("instellingen"); zetStatus("Nog niet gekoppeld"); return; }
     render();
@@ -364,7 +369,10 @@
     setInterval(() => { if (document.visibilityState === "visible") laadOverzicht(true); }, 15000);
     setInterval(() => { if (document.visibilityState === "visible" && S.tab === "overzicht") laadHist(); }, 60000);
     document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") laadOverzicht(true); });
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   }
+  /* Direct (synchroon) luisteren naar de installatie-prompt van Chrome: die komt maar één keer en vaak al
+     voordat de rest van de app geladen is. De service worker ook meteen, anders is de app niet installeerbaar. */
+  if (window.Installatie) Installatie.init(() => {});
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   start();
 })();
