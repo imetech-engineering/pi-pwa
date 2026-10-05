@@ -1,7 +1,7 @@
 /* IMeTech Pi: status, historie, diensten en onderhoud van de RPi5. */
 (function () {
   "use strict";
-  const VERSIE = "1.1.0";
+  const VERSIE = "1.1.1";
   const $ = (id) => document.getElementById(id);
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -118,7 +118,7 @@
     const t = [
       ["cpu", "CPU", fmt(l.cpu), "%", `load ${fmt(l.load1, 2)}`, l.cpu, kleurM(l.cpu, 75, 90)],
       ["mem", "Geheugen", fmt(l.mem), "%", `van ${fmt(S.ov.mem_total_mb / 1024)} GB`, l.mem, kleurM(l.mem, 85, 92)],
-      ["temp", "Temperatuur", fmt(l.temp), "°C", spanning(l.throttled) + (S.ov.onderspanning_30d ? ` · ${S.ov.onderspanning_30d} min onderspanning (30d)` : ""), l.temp == null ? null : (l.temp / 90) * 100, kleurM(l.temp, 72, 80)],
+      ["temp", "Temperatuur", fmt(l.temp), "°C", (S.ov.onderspanning && S.ov.onderspanning.uur ? `${S.ov.onderspanning.uur}x onderspanning/uur` : S.ov.onderspanning && S.ov.onderspanning.sinds_start ? `${S.ov.onderspanning.sinds_start}x onderspanning sinds start` : spanning(l.throttled)), l.temp == null ? null : (l.temp / 90) * 100, kleurM(l.temp, 72, 80)],
       ["disk", "Schijf", fmt(l.disk), "%", "systeemkaart", l.disk, kleurM(l.disk, 80, 90)],
       ["load", "Load", fmt(l.load1, 2), "", `${n} kernen`, l.load1 == null ? null : (l.load1 / n) * 100, kleurM(l.load1, n * 0.8, n * 1.5)],
       ["net", "Netwerk", fmt((l.rx || 0) / 1024), "KB/s", `uit ${fmt((l.tx || 0) / 1024)} KB/s`, null, ""],
