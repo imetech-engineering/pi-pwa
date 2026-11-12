@@ -1,6 +1,6 @@
 /* Service worker: offline de app-schil. API-calls gaan altijd direct naar de Pi. */
-const CACHE = "pi-v4";
-const SCHIL = ["./", "index.html", "manifest.json", "css/style.css", "css/pi.css", "js/opslag.js", "js/api.js", "js/install.js", "js/app.js", "js/terug.js", "js/imetech-apps.js", "icons/icon-192.png", "icons/icon-512.png", "branding/logo-zwart.png", "branding/logo-wit.png"];
+const CACHE = "pi-v7";
+const SCHIL = ["./", "index.html", "css/imetech-ui.css", "js/imetech-ui.js", "manifest.json", "css/style.css", "css/pi.css", "js/opslag.js", "js/api.js", "js/install.js", "js/app.js", "js/terug.js", "js/imetech-apps.js", "icons/icon-192.png", "icons/icon-512.png", "branding/logo-zwart.png", "branding/logo-wit.png"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SCHIL.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting()));
